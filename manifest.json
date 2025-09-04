@@ -25,6 +25,7 @@
       "label": "Calculator in a dark theme."
     }
   ],
+  "categories": ["utilities", "finance", "business"],
   "background_color": "#ffffff",
   "theme_color": "#2d3748",
   "icons": [
