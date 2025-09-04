@@ -4,6 +4,7 @@
   "short_name": "Calc",
   "description": "A simple and modern calculator PWA.",
   "start_url": ".",
+  "dir": "auto",
   "display": "standalone",
   "launch_handler": {
     "client_mode": "navigate-existing"
