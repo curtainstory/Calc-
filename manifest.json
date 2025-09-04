@@ -5,6 +5,9 @@
   "description": "A simple and modern calculator PWA.",
   "start_url": ".",
   "display": "standalone",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#ffffff",
   "theme_color": "#2d3748",
   "icons": [
