@@ -9,6 +9,22 @@
     "client_mode": "navigate-existing"
   },
   "orientation": "any",
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Calculator in a light theme."
+    },
+    {
+      "src": "/screenshots/screenshot-2.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Calculator in a dark theme."
+    }
+  ],
   "background_color": "#ffffff",
   "theme_color": "#2d3748",
   "icons": [
