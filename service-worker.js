@@ -65,6 +65,40 @@ self.addEventListener('periodicsync', (event) => {
     }
 });
 
+// Add push notification event listener
+self.addEventListener('push', (event) => {
+    const data = event.data.json();
+    const title = data.title || 'PWA Calculator';
+    const options = {
+        body: data.body || 'A new update is available!',
+        icon: '/images/icon-512x512.png',
+        badge: '/images/badge.png'
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Add notification click event listener
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clientList) => {
+                if (clientList.length > 0) {
+                    let client = clientList[0];
+                    for (let i = 0; i < clientList.length; i++) {
+                        if (clientList[i].focused) {
+                            client = clientList[i];
+                        }
+                    }
+                    return client.focus();
+                }
+                return clients.openWindow('/');
+            })
+    );
+});
+
+
 // Example function to handle the sync.
 // In a real application, this would fetch data from IndexedDB
 // and send it to your API.
