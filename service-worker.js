@@ -55,6 +55,16 @@ self.addEventListener('sync', (event) => {
     }
 });
 
+// Add event listener for periodic background sync
+self.addEventListener('periodicsync', (event) => {
+    console.log('[Service Worker] Periodic Sync event fired', event.tag);
+    // This is where you would handle the periodic sync logic,
+    // such as fetching new data or updating the cache.
+    if (event.tag === 'content-update') {
+        event.waitUntil(getUpToDateContent());
+    }
+});
+
 // Example function to handle the sync.
 // In a real application, this would fetch data from IndexedDB
 // and send it to your API.
@@ -68,6 +78,20 @@ function syncBillData() {
         // Placeholder logic:
         setTimeout(() => {
             console.log('[Service Worker] Bill data synced successfully!');
+            resolve();
+        }, 2000);
+    });
+}
+
+// Example function to handle the periodic sync
+// In a real application, this would fetch updated resources from the network
+// and update the cache.
+function getUpToDateContent() {
+    console.log('[Service Worker] Attempting to get up-to-date content.');
+    // Placeholder logic for fetching new data
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            console.log('[Service Worker] Up-to-date content retrieved and cached!');
             resolve();
         }, 2000);
     });
