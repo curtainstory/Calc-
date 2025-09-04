@@ -1,132 +1,303 @@
-const CACHE_NAME = 'calculator-pwa-cache-v1';
-const urlsToCache = [
-    '/',
-    '/index.html',
-    'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
-    '/manifest.json'
-];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calc</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2d3748"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .main-grid {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        .functions-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        .calculator-button {
+            padding: 0.4rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .calculator-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* CSS for printing the bill */
+        @media print {
+            body > *:not(#print-area) {
+                display: none;
+            }
+            #print-area {
+                display: block !important;
+                margin: 0;
+                padding: 0;
+                color: black;
+                font-family: 'Inter', sans-serif;
+            }
+            #print-area h2, #print-area p {
+                text-align: left;
+                margin: 0;
+                font-size: 1rem;
+            }
+            #print-area h1 {
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-800 min-h-screen flex flex-col items-center justify-center p-4 text-white">
+    <div class="bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+        <!-- Grand Total Display -->
+        <div class="text-right text-lg font-bold text-gray-300 h-6 mb-2" id="gt-display">GT: 0</div>
+        <div class="text-right text-lg font-bold text-gray-300 h-6 mb-2" id="gst-display">GST: 0</div>
+        
+        <div class="text-right text-sm font-light text-gray-400 h-6" id="history-display"></div>
+        <div class="text-right text-4xl font-extralight h-12 mb-4" id="display">0</div>
+        
+        <div class="main-grid">
+            <div class="numbers-grid flex-grow">
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500 text-red-400" onclick="clearDisplay()">C</button>
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="calculateGT()">GT</button>
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="calculatePercentage()">%</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('7')">7</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('8')">8</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('9')">9</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('4')">4</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('5')">5</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('6')">6</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('1')">1</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('2')">2</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendNumber('3')">3</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600 col-span-2" onclick="appendNumber('0')">0</button>
+                <button class="calculator-button bg-gray-700 hover:bg-gray-600" onclick="appendDecimal('.')">.</button>
+            </div>
+            <div class="functions-grid">
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="appendOperator('/')">÷</button>
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="appendOperator('*')">×</button>
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="appendOperator('-')">-</button>
+                <button class="calculator-button bg-gray-600 hover:bg-gray-500" onclick="appendOperator('+')">+</button>
+                <button class="calculator-button bg-blue-500 hover:bg-blue-600" onclick="calculateGST(0.05)">GST 5%</button>
+                <button class="calculator-button bg-blue-500 hover:bg-blue-600" onclick="calculateGST(0.12)">GST 12%</button>
+                <button class="calculator-button bg-green-500 hover:bg-green-600" onclick="printBill()">Print Bill</button>
+                <button class="calculator-button bg-orange-500 hover:bg-orange-600" onclick="calculate()">=</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- This div is for the print preview content. It will be hidden until printed. -->
+    <div id="print-area" class="hidden"></div>
 
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
-    );
-});
+    <script>
+        // Check for Service Worker support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('Service Worker registered! Scope:', reg.scope);
+                    })
+                    .catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
+        }
 
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                if (response) {
-                    return response;
+        const display = document.getElementById('display');
+        const historyDisplay = document.getElementById('history-display');
+        const gtDisplay = document.getElementById('gt-display');
+        const gstDisplay = document.getElementById('gst-display');
+        const printArea = document.getElementById('print-area');
+        let currentInput = '';
+        let grandTotal = 0;
+        let lastOperation = null;
+        let firstOperand = null;
+        let readyForNewCalculation = false;
+        let calculationHistory = [];
+
+        function appendNumber(number) {
+            if (readyForNewCalculation) {
+                currentInput = number;
+                readyForNewCalculation = false;
+                historyDisplay.textContent = '';
+            } else {
+                currentInput += number;
+            }
+            display.textContent = currentInput;
+        }
+
+        function appendDecimal() {
+            if (!currentInput.includes('.')) {
+                currentInput += '.';
+                display.textContent = currentInput;
+            }
+        }
+
+        function appendOperator(op) {
+            if (currentInput !== '') {
+                firstOperand = parseFloat(display.textContent);
+                lastOperation = op;
+                historyDisplay.textContent = display.textContent + ' ' + op;
+                currentInput = '';
+                display.textContent = '0';
+                readyForNewCalculation = false;
+            }
+        }
+
+        function clearDisplay() {
+            currentInput = '';
+            historyDisplay.textContent = '';
+            display.textContent = '0';
+            grandTotal = 0;
+            gtDisplay.textContent = 'GT: 0';
+            gstDisplay.textContent = 'GST: 0';
+            lastOperation = null;
+            firstOperand = null;
+            readyForNewCalculation = false;
+            calculationHistory = []; // Clear the history for a new bill
+        }
+
+        function calculate() {
+            if (currentInput !== '') {
+                const expression = historyDisplay.textContent.replace('÷', '/').replace('×', '*') + ' ' + currentInput;
+                try {
+                    const result = eval(expression);
+                    historyDisplay.textContent = expression.replace('/', '÷').replace('*', '×') + ' =';
+                    display.textContent = result;
+                    currentInput = result.toString();
+                    grandTotal += result;
+                    gtDisplay.textContent = 'GT: ' + grandTotal.toFixed(2);
+                    readyForNewCalculation = true;
+                    
+                    // Add the calculation to the history
+                    calculationHistory.push({
+                        expression: historyDisplay.textContent,
+                        result: result
+                    });
+                } catch (e) {
+                    display.textContent = 'Error';
+                    currentInput = '';
+                    readyForNewCalculation = true;
                 }
-                return fetch(event.request);
-            })
-    );
-});
+                firstOperand = null;
+                lastOperation = null;
+            }
+        }
+        
+        function calculateGT() {
+            display.textContent = grandTotal.toFixed(2);
+            historyDisplay.textContent = 'GT: ' + grandTotal.toFixed(2);
+            currentInput = grandTotal.toFixed(2).toString();
+            readyForNewCalculation = true;
+        }
 
-self.addEventListener('activate', (event) => {
-    const cacheWhitelist = [CACHE_NAME];
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
-});
-
-// Add event listener for background sync
-self.addEventListener('sync', (event) => {
-    console.log('[Service Worker] Sync event fired', event.tag);
-    // This is where you would handle the background sync logic.
-    // For example, if you have a 'sync-bill' tag, you would
-    // retrieve the cached bill data and try to send it to a server.
-    if (event.tag === 'sync-bill') {
-        event.waitUntil(syncBillData());
-    }
-});
-
-// Add event listener for periodic background sync
-self.addEventListener('periodicsync', (event) => {
-    console.log('[Service Worker] Periodic Sync event fired', event.tag);
-    // This is where you would handle the periodic sync logic,
-    // such as fetching new data or updating the cache.
-    if (event.tag === 'content-update') {
-        event.waitUntil(getUpToDateContent());
-    }
-});
-
-// Add push notification event listener
-self.addEventListener('push', (event) => {
-    const data = event.data.json();
-    const title = data.title || 'PWA Calculator';
-    const options = {
-        body: data.body || 'A new update is available!',
-        icon: '/images/icon-512x512.png',
-        badge: '/images/badge.png'
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-});
-
-// Add notification click event listener
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clientList) => {
-                if (clientList.length > 0) {
-                    let client = clientList[0];
-                    for (let i = 0; i < clientList.length; i++) {
-                        if (clientList[i].focused) {
-                            client = clientList[i];
-                        }
-                    }
-                    return client.focus();
+        function calculatePercentage() {
+            if (firstOperand !== null && lastOperation !== null) {
+                const currentNumber = parseFloat(currentInput);
+                let result;
+                const percentageValue = firstOperand * (currentNumber / 100);
+                
+                if (lastOperation === '+') {
+                    result = firstOperand + percentageValue;
+                } else if (lastOperation === '-') {
+                    result = firstOperand - percentageValue;
+                } else if (lastOperation === '*') {
+                    result = percentageValue;
+                } else if (lastOperation === '/') {
+                    result = firstOperand / (currentNumber / 100);
                 }
-                return clients.openWindow('/');
-            })
-    );
-});
 
+                display.textContent = result;
+                currentInput = result.toString();
+                historyDisplay.textContent = `${firstOperand} ${lastOperation} ${currentNumber}%`;
+                readyForNewCalculation = true;
+                firstOperand = null;
+                lastOperation = null;
 
-// Example function to handle the sync.
-// In a real application, this would fetch data from IndexedDB
-// and send it to your API.
-function syncBillData() {
-    // Here, you would implement the logic to:
-    // 1. Get data from a local, persistent storage (like IndexedDB).
-    // 2. Send the data to your server using a fetch() request.
-    // 3. Delete the data from local storage upon a successful sync.
-    console.log('[Service Worker] Attempting to sync bill data.');
-    return new Promise((resolve) => {
-        // Placeholder logic:
-        setTimeout(() => {
-            console.log('[Service Worker] Bill data synced successfully!');
-            resolve();
-        }, 2000);
-    });
-}
+            } else {
+                const result = parseFloat(display.textContent) / 100;
+                display.textContent = result;
+                currentInput = result.toString();
+                historyDisplay.textContent = 'Percentage of ' + currentValue;
+                readyForNewCalculation = true;
+            }
+        }
 
-// Example function to handle the periodic sync
-// In a real application, this would fetch updated resources from the network
-// and update the cache.
-function getUpToDateContent() {
-    console.log('[Service Worker] Attempting to get up-to-date content.');
-    // Placeholder logic for fetching new data
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            console.log('[Service Worker] Up-to-date content retrieved and cached!');
-            resolve();
-        }, 2000);
-    });
-}
+        function calculateGST(rate) {
+            const currentValue = parseFloat(display.textContent);
+            if (!isNaN(currentValue)) {
+                const gstAmount = currentValue * rate;
+                const totalAmount = currentValue + gstAmount;
+
+                gstDisplay.textContent = `GST: ${gstAmount.toFixed(2)} (${rate * 100}%)`;
+                display.textContent = totalAmount.toFixed(2);
+                historyDisplay.textContent = `${currentValue} + ${rate * 100}% GST`;
+                currentInput = totalAmount.toString();
+                
+                grandTotal += totalAmount;
+                gtDisplay.textContent = 'GT: ' + grandTotal.toFixed(2);
+                readyForNewCalculation = true;
+
+                // Add the GST calculation to the history
+                calculationHistory.push({
+                    expression: `Subtotal: ${currentValue} + ${rate * 100}% GST`,
+                    result: totalAmount
+                });
+            }
+        }
+        
+        function printBill() {
+            let billHtml = `
+                <div style="padding: 1rem;">
+                    <h1 style="text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Receipt</h1>
+                    <div style="border-bottom: 1px dashed black; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                        <p>Date: ${new Date().toLocaleDateString()}</p>
+                    </div>
+            `;
+            
+            // Add each item from the history
+            calculationHistory.forEach((item, index) => {
+                billHtml += `
+                    <p style="display: flex; justify-content: space-between;">
+                        <span>Item ${index + 1}: ${item.expression}</span>
+                        <span>Rs. ${item.result.toFixed(2)}</span>
+                    </p>
+                `;
+            });
+            
+            // Add totals
+            billHtml += `
+                    <div style="border-top: 1px dashed black; padding-top: 0.5rem; margin-top: 0.5rem;">
+                        <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem;">
+                            <span>GRAND TOTAL:</span>
+                            <span>Rs. ${grandTotal.toFixed(2)}</span>
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            // Set the content for the print area and trigger print
+            printArea.innerHTML = billHtml;
+            window.print();
+        }
+    </script>
+</body>
+</html>
